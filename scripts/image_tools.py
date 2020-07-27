@@ -4,12 +4,14 @@ from statistics import mode
 import rasterio as rio
 import xarray as xr
 from pyproj.crs import CRS
-from rasterio.enums import ColorInterp, Resampling
+from rasterio.enums import ColorInterp
 from rasterio.merge import merge
+from rasterio.warp import calculate_default_transform, reproject, Resampling
+
 
 UTM_CRS = {
     '16': CRS.from_epsg(32616), # UTM 16N WGS84 # Eureka
-    '15': CRS.from_epsg(32615), # UTM 15N WGS84 # Eureka
+    '15': CRS.from_epsg(32615), # UTM 15N WGS84 # West of Eureka
     '08': CRS.from_epsg(32608), # UTM 8N WGS84 # TVC
 }
 
@@ -78,18 +80,57 @@ def hdf_to_tif(hdf_file):
             with rio.open(band) as src:
                 dst.write_band(band_id, src.read(1))
         dst.colorinterp = [ColorInterp.red, ColorInterp.green, ColorInterp.blue]
-    return 
+    return tif_file
+
+def reproject_tif(tif, dst_crs=UTM_CRS.get('16')):
+    '''
+    Reproject tifs that aren't in the same CRS as the majority, 
+    so we don't run into mosaic issues
+    '''
+    dst_file = tif.parent / (tif.stem + '_reproj.tif')
+    with rio.open(tif) as src:
+        transform, width, height = calculate_default_transform(
+            src.crs, dst_crs, src.width, src.height, *src.bounds
+        )
+        meta = src.meta.copy()
+        meta.update({
+            'crs': dst_crs,
+            'transform': transform,
+            'width': width,
+            'height': height,
+            'nodata': 0
+        })
+        with rio.open(dst_file, 'w', **meta) as dst:
+             for i in range(1, src.count + 1):
+                reproject(
+                    source=rio.band(src, i),
+                    destination=rio.band(dst, i),
+                    src_transform=src.transform,
+                    src_crs=src.crs,
+                    dst_transform=transform,
+                    dst_crs=dst_crs,
+                    resampling=Resampling.cubic
+                )
+        return dst_file
 
 def merge_tifs(tifs, mosaic_file):
     '''
+    mosaic tifs together to make a nice image over Eureka
     '''
     open_tifs = [rio.open(tif) for tif in tifs]
     # establish common crs
     common_crs = mode([tif.crs for tif in open_tifs])
+    mosaic_tifs = []
+    # reproject any mismatched
+    for tif in open_tifs:
+        if not tif.crs == common_crs:
+            mosaic_tifs.append(rio.open(reproject_tif(tifs[open_tifs.index(tif)])))
+        else:
+            mosaic_tifs.append(tif)
     # mosaic
-    mosaic, transform = merge(open_tifs)
+    mosaic, transform = merge(mosaic_tifs)
     # copy metadata from first tif
-    meta = open_tifs[0].meta.copy()
+    meta = mosaic_tifs[0].meta.copy()
     meta.update({
         'height': mosaic.shape[1],
         'width': mosaic.shape[2],
@@ -99,7 +140,7 @@ def merge_tifs(tifs, mosaic_file):
         'tiled': True,
         'tilexsize': 256,
         'tileysize': 256,
-        'nodata': None
+        'nodata': 0
     })
     with rio.open(mosaic_file, 'w', **meta) as dst:
         dst.write(mosaic)

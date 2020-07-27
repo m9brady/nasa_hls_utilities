@@ -1,8 +1,32 @@
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from tqdm import tqdm
 import requests
 
+
+def generate_tile_names(tiles, date, product='S30', version='1.4'):
+    '''
+    Given tiles and desired date, return the proper filenames for grabbing
+    '''
+    date = date.replace('-', '').replace('/','')
+    # assume YYYYJJJ first
+    if len(date) == 7:
+        try:
+            date = datetime.strptime(date, '%Y%j').strftime('%Y%j')
+        except ValueError:
+            date = datetime.strptime(date, '%Y%m%d').strftime('%Y%j')
+    # YYYYMMDD
+    elif len(date) == 8:
+        date = datetime.strptime(date, '%Y%m%d').strftime('%Y%j')
+    # check product
+    if not product in ['S30', 'L30']:
+        raise NotImplementedError('Product %s not recognized')
+    return [
+        f'HLS.{product}.{tile}.{date}.v{version}.hdf'
+        for tile in tiles
+    ]
 
 def __download(src, dst):
     '''
@@ -12,7 +36,7 @@ def __download(src, dst):
     if r.ok:
         chunk_size = 1024
         with open(dst, 'wb') as out_file:
-            for chunk in tqdm(r.iter_content(chunk_size), desc=dst.name, unit='KB', unit_divisor=1024, unit_scale=True):
+            for chunk in tqdm(r.iter_content(chunk_size), desc=dst.name, unit='MB', unit_scale=chunk_size):
                 out_file.write(chunk)
     else:
         return 'Failed | %s | HTTP-%d: %s' % (dst.name, r.status_code, r.reason)
@@ -23,6 +47,8 @@ def download_hls_data(tiles, output_dir, max_download_threads=2):
     Using <max_download_threads> concurrent threads (Default 2), 
     download the desired tile files to <output_dir>
     '''
+    if not isinstance(output_dir, Path):
+        output_dir = Path(output_dir)
     download_urls = [
         'https://hls.gsfc.nasa.gov/data/v1.4/%s/%s' % (
             tile.split('.')[1],
