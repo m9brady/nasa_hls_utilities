@@ -13,6 +13,8 @@ UTM_CRS = {
     '16': CRS.from_epsg(32616), # UTM 16N WGS84 # Eureka
     '15': CRS.from_epsg(32615), # UTM 15N WGS84 # West of Eureka
     '08': CRS.from_epsg(32608), # UTM 8N WGS84 # TVC
+    '29': CRS.from_epsg(32629), # UTM 29N WGS84 # Ireland
+    '30': CRS.from_epsg(32630) # UTM 29N WGS84 # Ireland
 }
 
 SAMPLE_METHODS = {

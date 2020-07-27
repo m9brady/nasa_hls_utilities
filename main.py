@@ -33,7 +33,7 @@ def main(args):
     good = [acceptable_cloud_coverage(hdf) for hdf in hdfs]
     if not all(good):
         print('Too much cloud coverage for:')
-        print('\n'.join([hdfs[idx].name for idx, i in enumerate(good) if i]))
+        print('\n'.join([hdfs[idx].name for idx, i in enumerate(good) if not i]))
         if CLEANUP:
             [hdf.unlink() for hdf in hdfs]
         return
