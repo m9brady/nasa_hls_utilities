@@ -14,7 +14,7 @@ UTM_CRS = {
     '15': CRS.from_epsg(32615), # UTM 15N WGS84 # West of Eureka
     '08': CRS.from_epsg(32608), # UTM 8N WGS84 # TVC
     '29': CRS.from_epsg(32629), # UTM 29N WGS84 # Ireland
-    '30': CRS.from_epsg(32630) # UTM 29N WGS84 # Ireland
+    '30': CRS.from_epsg(32630)  # UTM 30N WGS84 # Ireland
 }
 
 SAMPLE_METHODS = {
@@ -33,10 +33,11 @@ def acceptable_cloud_coverage(hdf_file, threshold=30):
     by threshold (default: 30%), return False
     '''
     with xr.open_dataset(hdf_file) as ds:
-        if ds.attrs.get('cloud_coverage') > threshold:
-            return False
-        else:
-            return True
+        cloud_coverage = ds.attrs.get('cloud_coverage', 0)
+    if cloud_coverage > threshold:
+        return False
+    else:
+        return True
 
 def hdf_to_tif(hdf_file):
     '''

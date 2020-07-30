@@ -29,6 +29,7 @@ def main(args):
     if len(hdfs) == 0:
         print('No data found for date %s' % dt)
         return
+    '''
     # check cloud coverage
     good = [acceptable_cloud_coverage(hdf) for hdf in hdfs]
     if not all(good):
@@ -37,6 +38,7 @@ def main(args):
         if CLEANUP:
             [hdf.unlink() for hdf in hdfs]
         return
+    '''
     tifs = [hdf_to_tif(hdf) for hdf in hdfs]
     mosaic_file = DOWNLOAD_DIR / ('HLS.%s.%s.%s.v%s.tif' % (
         tifs[0].stem.split('.')[1],

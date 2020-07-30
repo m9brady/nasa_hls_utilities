@@ -36,7 +36,7 @@ def __download(src, dst):
     if r.ok:
         chunk_size = 1024
         with open(dst, 'wb') as out_file:
-            for chunk in tqdm(r.iter_content(chunk_size), desc=dst.name, unit='B', unit_divisor=1024**2, unit_scale=chunk_size):
+            for chunk in tqdm(r.iter_content(chunk_size), desc=dst.name, unit='MB', unit_divisor=1024**4):
                 out_file.write(chunk)
     else:
         return 'Failed | %s | HTTP-%d: %s' % (dst.name, r.status_code, r.reason)
