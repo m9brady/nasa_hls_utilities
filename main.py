@@ -39,6 +39,7 @@ def main(args):
             [hdf.unlink() for hdf in hdfs]
         return
     '''
+    print('Converting HDF to GTiff...')
     tifs = [hdf_to_tif(hdf) for hdf in hdfs]
     mosaic_file = DOWNLOAD_DIR / ('HLS.%s.%s.%s.v%s.tif' % (
         tifs[0].stem.split('.')[1],
@@ -46,14 +47,18 @@ def main(args):
         tifs[0].stem.split('.')[3],
         tifs[0].stem.split('v')[-1]
     ))
+    print('Building Mosaic...')
     merge_tifs(tifs, mosaic_file)
+    print('Embedding Image Overviews...')
     add_overviews(mosaic_file)
+    print('Cleaning up...')
     if CLEANUP:
         [hdf.unlink() for hdf in hdfs]
         [tif.unlink() for tif in tifs]
         [reproj.unlink() for reproj in DOWNLOAD_DIR.glob('*_reproj.tif')]
+    print('Mosaic file ready: %s' % mosaic_file)
     return
 
 if __name__ == '__main__':
     main(sys.argv)
-    
+
