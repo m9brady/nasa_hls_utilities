@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 from scripts.get_data import download_hls_data, generate_tile_names
 from scripts.image_tools import hdf_to_tif, merge_tifs, add_overviews, acceptable_cloud_coverage
 
-DOWNLOAD_DIR = Path(__file__).parent / 'scratch'
+DOWNLOAD_DIR = Path(__file__).parent / 'hls_downloads'
 TILES = Path(__file__).parent / 'assets' / 'tiles.json'
 CLEANUP = True
 

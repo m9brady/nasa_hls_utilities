@@ -28,29 +28,32 @@ def generate_tile_names(tiles, date, product='S30', version='1.4'):
         for tile in tiles
     ]
 
-def __download(src, dst):
+def __download(src, dst, chunk_size=1024**2):
     '''
     Downloader with progress bar. Not meant to be used directly
     '''
-    r = requests.get(src)
+    r = requests.get(src, stream=True)
     if r.ok:
-        chunk_size = 1024**2
+        total_size = int(r.headers.get('content-length', 0))
         with open(dst, 'wb') as out_file:
-            for chunk in tqdm(r.iter_content(chunk_size), desc=dst.name, unit='MB'):
-                out_file.write(chunk)
+            with tqdm(total=total_size, unit='B', unit_scale=True, desc=dst.name) as pbar:
+                for chunk in r.iter_content(chunk_size):
+                    out_file.write(chunk)
+                    pbar.update(len(chunk))
     else:
         return 'Failed | %s | HTTP-%d: %s' % (dst.name, r.status_code, r.reason)
     return 'Complete'
 
-def download_hls_data(tiles, output_dir, max_download_threads=2):
+def download_hls_data(tiles, output_dir, max_download_threads=1):
     '''
-    Using <max_download_threads> concurrent threads (Default 2), 
+    Using <max_download_threads> concurrent threads (Default 2),
     download the desired tile files to <output_dir>
     '''
     if not isinstance(output_dir, Path):
         output_dir = Path(output_dir)
     download_urls = [
-        'https://hls.gsfc.nasa.gov/data/v1.4/%s/%s' % (
+        'https://hls.gsfc.nasa.gov/data/%s/%s/%s' % (
+            '.'.join(tile.split('.')[-3:-1]),
             tile.split('.')[1],
             '/'.join([
                 tile.split('.')[3][:4],
